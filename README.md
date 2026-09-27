@@ -1,3 +1,4 @@
+<img width="1461" height="792" alt="Screenshot 2026-09-27 014907" src="https://github.com/user-attachments/assets/948f9075-95ae-4abe-aa0d-16d15227aa07" />
 # instagram-engagement-scraper
 # 🚀 Viral Trend Analyst (Instagram Engagement Scraper)
 
@@ -7,7 +8,8 @@ An end-to-end automated data engineering pipeline designed to extract, process, 
 <!-- DRAG AND DROP YOUR DEMO VIDEO (.mp4) RIGHT HERE -->
 
 ## 📸 Dashboard Preview
-<!-- DRAG AND DROP YOUR DASHBOARD SCREENSHOT RIGHT HERE -->
+
+## 📸 Dashboard Preview"C:\Users\sanja\OneDrive\Pictures\Screenshots 1\Screenshot 2026-09-27 014907.png"
 
 ---
 
