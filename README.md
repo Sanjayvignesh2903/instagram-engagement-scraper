@@ -9,8 +9,6 @@ An end-to-end automated data engineering pipeline designed to extract, process, 
 
 ## 📸 Dashboard Preview
 
-## 📸 Dashboard Preview"C:\Users\sanja\OneDrive\Pictures\Screenshots 1\Screenshot 2026-09-27 014907.png"
-
 ---
 
 ## ⚙️ System Architecture
