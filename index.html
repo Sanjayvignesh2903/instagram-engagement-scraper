@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Viral Trend Analyst</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --box: #111111;
+      --hairline: rgba(255, 255, 255, 0.1);
+      --heading: #fafafa;
+      --subtitle: #9e9e9e;
+      --grad-solid: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; }
+    
+    body {
+      background-color: #030305;
+      background-image: 
+        radial-gradient(ellipse at 30% 30%, rgba(45, 30, 20, 0.45), transparent 50%),
+        radial-gradient(ellipse at 70% 60%, rgba(20, 25, 45, 0.4), transparent 50%);
+      background-attachment: fixed;
+      color: #fff;
+      font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Screen Edge Flowing Water-like Loading Border */
+    .edge-glow-border {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: linear-gradient(90deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5, #feda75);
+      background-size: 300% 300%;
+      animation: fluidEdge 2s ease infinite;
+      padding: 3px;
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+    .edge-glow-border.active { opacity: 1; }
+
+    @keyframes fluidEdge {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #star-canvas, #fluid-canvas {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none;
+    }
+    #star-canvas { z-index: 0; }
+    #fluid-canvas { z-index: 1; }
+
+    .container {
+      position: relative; z-index: 10; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 60px 20px 60px;
+    }
+
+    .logo {
+      position: fixed; top: 35px; left: clamp(20px, 5vw, 40px); width: 42px; height: 42px; z-index: 100; cursor: pointer;
+    }
+
+    /* Restored Custom SVG Icon */
+    .custom-viral-icon {
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .custom-viral-icon svg {
+      width: 48px;
+      height: 48px;
+    }
+
+    h1 { margin: 0; font-weight: 600; font-size: clamp(2rem, 5vw, 3.6rem); text-align: center; line-height: 1.15; letter-spacing: -0.02em; }
+    .subtitle { color: var(--subtitle); font-size: 1.05rem; text-align: center; margin-top: 0.8rem; margin-bottom: 2rem; max-width: 600px; }
+
+    .panel {
+      width: 100%; max-width: 760px; background: rgba(17, 17, 17, 0.65); backdrop-filter: blur(16px);
+      border: 1px solid var(--hairline); border-radius: 20px; padding: 28px; position: relative;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .panel-glow { position: absolute; inset: 0; top: auto; height: 3px; background: var(--grad-solid); filter: blur(2px); border-radius: inherit; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+    .full-width { grid-column: 1 / -1; }
+    
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    .input-group label { font-size: 0.85rem; color: #bbb; font-weight: 500; }
+    
+    .input-group select, .input-group input, .input-group textarea {
+      width: 100%; padding: 12px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--hairline); color: #fff; font-family: inherit; font-size: 0.95rem; outline: none; transition: border 0.2s;
+    }
+    .input-group select:focus, .input-group input:focus, .input-group textarea:focus { border-color: #fa7e1e; }
+    .input-group select option { background: #111; color: #fff; }
+
+    .btn-analyze {
+      width: 100%; padding: 16px; border-radius: 12px; background: var(--grad-solid);
+      border: none; color: #fff; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: transform 0.1s, filter 0.2s;
+    }
+    .btn-analyze:hover { filter: brightness(1.15); }
+    .btn-analyze:active { transform: scale(0.99); }
+
+    /* Visible Loading Bar directly below the button */
+    .loader-container {
+      display: none; margin-top: 20px; text-align: center; width: 100%;
+    }
+    .loader-bar-bg {
+      width: 100%; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; margin-bottom: 10px;
+    }
+    .loader-bar-fill {
+      width: 100%; height: 100%; background: var(--grad-solid); background-size: 200% 100%; animation: fluidEdge 1.4s linear infinite;
+    }
+    .loader-text { color: #fa7e1e; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.02em; }
+
+    #results-section { display: none; width: 100%; max-width: 1050px; margin-top: 45px; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    .results-header { font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; }
+    .cards-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 35px; }
+    @media (max-width: 900px) { .cards-container { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .cards-container { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--hairline); border-radius: 14px;
+      padding: 18px 12px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-4px); background: rgba(255, 255, 255, 0.06); }
+    .stat-card .views-value {
+      font-size: 1.8rem; font-weight: 700; margin: 4px 0 0 0; background: var(--grad-solid); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-card .views-label { font-size: 0.75rem; color: #888; margin: 2px 0 14px 0; }
+    .stat-card .meta { font-size: 0.85rem; margin: 4px 0; }
+    .stat-card .likes { color: #d62976; font-weight: 600; }
+    .stat-card .comments { color: #feda75; font-weight: 500; }
+
+    .reel-btn {
+      display: inline-block; margin-top: 14px; padding: 8px 14px; border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1); color: #fff; text-decoration: none; font-size: 0.8rem; font-weight: 500; transition: background 0.2s;
+    }
+    .reel-btn:hover { background: #d62976; }
+
+    .chart-container { background: rgba(17, 17, 17, 0.65); padding: 24px; border-radius: 18px; border: 1px solid var(--hairline); }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Edges Liquid Border Loader -->
+  <div class="edge-glow-border" id="edgeLoader"></div>
+
+  <!-- Background Animated Graphics -->
+  <canvas id="star-canvas"></canvas>
+  <canvas id="fluid-canvas"></canvas>
+
+  <a href="#" class="logo" aria-label="Logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <linearGradient id="igLogoFlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#feda75"><animate attributeName="stop-color" values="#feda75;#d62976;#4f5bd5;#feda75" dur="3s" repeatCount="indefinite" /></stop>
+          <stop offset="50%" stop-color="#fa7e1e"><animate attributeName="stop-color" values="#fa7e1e;#962fbf;#feda75;#fa7e1e" dur="3s" repeatCount="indefinite" /></stop>
+          <stop offset="100%" stop-color="#d62976"><animate attributeName="stop-color" values="#d62976;#4f5bd5;#fa7e1e;#d62976" dur="3s" repeatCount="indefinite" /></stop>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#igLogoFlow)"></rect>
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="url(#igLogoFlow)"></path>
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="url(#igLogoFlow)"></line>
+    </svg>
+  </a>
+
+  <div class="container">
+    <!-- Custom Star Icon added back -->
+    <div class="custom-viral-icon">
+      <svg viewBox="0 0 32 32" fill="url(#igLogoFlow)">
+        <path d="M16 2 L19.5 12.5 L30 16 L19.5 19.5 L16 30 L12.5 19.5 L2 16 L12.5 12.5 Z" />
+        <circle cx="16" cy="16" r="14" fill="url(#igLogoFlow)" opacity="0.3" filter="blur(6px)" />
+      </svg>
+    </div>
+
+    <h1>Spot the trend.<br>Break the internet.</h1>
+    <div class="subtitle">Set your parameters or describe your exact vision. The AI will extract the most viral matches.</div>
+    
+    <div class="panel">
+      <div class="panel-glow"></div>
+      <form id="trendForm">
+        <div class="form-grid">
+          <div class="input-group full-width">
+            <label>Describe your vision (Optional)</label>
+            <textarea id="customPrompt" rows="2" placeholder="e.g., emotional love melody edits..."></textarea>
+          </div>
+          <div class="input-group">
+            <label>Video Theme / Vibe (Optional)</label>
+            <select id="vibe">
+              <option value="">-- Any Vibe --</option>
+              <option value="Romantic & Melodic">Romantic & Melodic</option>
+              <option value="Emotional & Cinematic">Emotional & Cinematic</option>
+              <option value="Aggressive / Angry">Aggressive / Angry</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Optimization Goal</label>
+            <select id="metric">
+              <option value="Likes">Maximize Likes</option>
+              <option value="Comments">Maximize Comments</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-analyze">Extract Viral Trends</button>
+
+        <div class="loader-container" id="loaderContainer">
+          <div class="loader-bar-bg">
+            <div class="loader-bar-fill"></div>
+          </div>
+          <div class="loader-text">✨ Fetching viral trends from Supabase...</div>
+        </div>
+      </form>
+    </div>
+
+    <div id="results-section">
+      <div class="results-header">Top 5 Viral Candidates</div>
+      <div class="cards-container" id="cards-container"></div>
+      <div class="chart-container">
+        <canvas id="metricsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function formatViews(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num;
+    }
+
+    document.getElementById('trendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const loaderContainer = document.getElementById('loaderContainer');
+      const edgeLoader = document.getElementById('edgeLoader');
+      const resultsSection = document.getElementById('results-section');
+
+      loaderContainer.style.display = 'block';
+      edgeLoader.classList.add('active');
+      resultsSection.style.display = 'none';
+      loaderContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            custom_prompt: document.getElementById('customPrompt').value,
+            theme: document.getElementById('vibe').value,
+            metric: document.getElementById('metric').value
+          })
+        });
+
+        const data = await response.json();
+        renderResults(data.top_posts);
+      } catch (err) {
+        console.error("API Error:", err);
+        alert("Server error. Ensure uvicorn main:app is running.");
+      } finally {
+        loaderContainer.style.display = 'none';
+        edgeLoader.classList.remove('active');
+      }
+    });
+
+    let trendChart = null;
+
+    function renderResults(posts) {
+      const resultsSection = document.getElementById('results-section');
+      const container = document.getElementById('cards-container');
+      resultsSection.style.display = 'block';
+      container.innerHTML = '';
+
+      const labels = [];
+      const likesData = [];
+      const commentsData = [];
+
+      posts.forEach((post, index) => {
+        labels.push(`Post ${index + 1}`);
+        likesData.push(post.likes);
+        commentsData.push(post.comments);
+
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `
+          <div>
+            <div class="views-value">${formatViews(post.views)}</div>
+            <div class="views-label">Est. Views</div>
+          </div>
+          <div>
+            <div class="meta likes">❤️ ${post.likes.toLocaleString()}</div>
+            <div class="meta comments">💬 ${post.comments.toLocaleString()}</div>
+            <a href="${post.url}" target="_blank" rel="noopener noreferrer" class="reel-btn">View Reel</a>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      const ctx = document.getElementById('metricsChart').getContext('2d');
+      if (trendChart) trendChart.destroy();
+
+      Chart.defaults.color = '#bbb';
+      trendChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Likes', data: likesData, backgroundColor: '#d62976', borderRadius: 4 },
+            { label: 'Comments', data: commentsData, backgroundColor: '#feda75', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top', labels: { color: '#fff' } } },
+          scales: {
+            y: { grid: { color: 'rgba(255,255,255,0.08)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // --- Dynamic Stars Background Animation ---
+    const sCanvas = document.getElementById('star-canvas');
+    const sCtx = sCanvas.getContext('2d');
+    let stars = [];
+    function initStars() {
+      sCanvas.width = window.innerWidth;
+      sCanvas.height = window.innerHeight;
+      stars = [];
+      for (let i = 0; i < 240; i++) {
+        stars.push({
+          x: Math.random() * sCanvas.width,
+          y: Math.random() * sCanvas.height,
+          radius: Math.random() * 1.3,
+          alpha: Math.random(),
+          speed: Math.random() * 0.015 + 0.005,
+          growing: Math.random() > 0.5
+        });
+      }
+    }
+    function animateStars() {
+      sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+      for (let star of stars) {
+        if (star.growing) {
+          star.alpha += star.speed;
+          if (star.alpha >= 1) star.growing = false;
+        } else {
+          star.alpha -= star.speed;
+          if (star.alpha <= 0.1) star.growing = true;
+        }
+        sCtx.beginPath();
+        sCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        sCtx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+        sCtx.fill();
+      }
+      requestAnimationFrame(animateStars);
+    }
+    window.addEventListener('resize', initStars);
+    initStars();
+    animateStars();
+
+    // --- Dynamic Fluid Cursor Trails Animation (Restored Intensity) ---
+    const canvas = document.getElementById('fluid-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let particles = [];
+    const igColors = ['#feda75', '#fa7e1e', '#d62976', '#962fbf', '#4f5bd5'];
+
+    function initFluid() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', initFluid);
+    initFluid();
+    
+    window.addEventListener('mousemove', (e) => {
+      // Increased particle count and size to restore full original flare
+      for (let i = 0; i < 4; i++) {
+        particles.push({
+          x: e.clientX,
+          y: e.clientY,
+          size: Math.random() * 25 + 5,
+          life: 1,
+          color: igColors[Math.floor(Math.random() * igColors.length)],
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2
+        });
+      }
+    });
+
+    function animateFluid() {
+      ctx.clearRect(0, 0, width, height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+        p.size *= 0.95;
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        // Removed the *0.7 multiplier to make flares intensely bright again
+        ctx.globalAlpha = p.life;
+        ctx.fill();
+      }
+      requestAnimationFrame(animateFluid);
+    }
+    animateFluid();
+  </script>
+</body>
+</html>
