@@ -2,11 +2,7 @@
 
 An end-to-end automated data engineering pipeline designed to extract, process, and visualize the most highly engaged Instagram Reels for any given keyword. Built to streamline social media research and marketing intelligence by replacing manual scrolling with a programmatic, data-driven approach.
 
-## 🎥 Project Demo
 
-<video src="Demo_video" controls="controls" style="max-width: 100%;"></video>
-
-*(If the video player does not load above, [click here to watch the Demo Video](Demo_video))*
 
 ---
 
